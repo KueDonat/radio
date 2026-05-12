@@ -86,16 +86,14 @@ streamServer.listen(4000, () => {
 
 // ---- FFmpeg: PCM -> MP3 ----
 const ffmpegProcess = spawn(ffmpegBin, [
-    '-fflags', 'nobuffer',        // Kurangi internal FFmpeg buffer
     '-f', 's16le',
     '-ar', '48000',
     '-ac', '2',
     '-i', 'pipe:0',
     '-f', 'mp3',
-    '-b:a', '128k',
+    '-b:a', '96k',
     '-ar', '44100',
     '-ac', '2',
-    '-flush_packets', '1',        // Flush output segera tanpa tunggu buffer penuh
     'pipe:1'
 ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
