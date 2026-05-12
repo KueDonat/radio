@@ -115,11 +115,39 @@ ffmpegProcess.stdout.on('data', (chunk) => {
 
 ffmpegProcess.on('close', (code) => console.log('[FFmpeg] Closed with code', code));
 
-// PCM Mixer: tulis silence saat tidak ada yang bicara
+// PCM Mixer: kumpulkan suara tiap user lalu gabungkan setiap 20ms
+const userPCMQueues = new Map();
 const speakingUsers = new Set();
+const MAX_QUEUE_FRAMES = 5; // Buffer ~100ms untuk cegah lag
 
 setInterval(() => {
+    // Jika tidak ada yang bicara, kirim silence
     if (speakingUsers.size === 0) {
+        ffmpegProcess.stdin.write(Buffer.alloc(FRAME_SIZE));
+        return;
+    }
+
+    const mixedFrame = Buffer.alloc(FRAME_SIZE);
+    let hasData = false;
+
+    // Ambil 1 frame (20ms) dari tiap user yang sedang bicara
+    for (const [userId, queue] of userPCMQueues) {
+        const frame = queue.shift();
+        if (!frame) continue;
+
+        hasData = true;
+        for (let i = 0; i < FRAME_SIZE; i += 2) {
+            const existing = mixedFrame.readInt16LE(i);
+            const incoming = frame.readInt16LE(i);
+            // Mixing dengan clipping protection
+            const mixed = Math.max(-32768, Math.min(32767, existing + incoming));
+            mixedFrame.writeInt16LE(mixed, i);
+        }
+    }
+
+    if (hasData) {
+        ffmpegProcess.stdin.write(mixedFrame);
+    } else {
         ffmpegProcess.stdin.write(Buffer.alloc(FRAME_SIZE));
     }
 }, 20);
@@ -201,6 +229,8 @@ discordClient.on(Events.MessageCreate, async (message) => {
             }
             const opusDecoder = userOpusDecoders.get(userId);
 
+            userPCMQueues.set(userId, []);
+
             const audioStream = currentConnection.receiver.subscribe(userId, {
                 end: { behavior: EndBehaviorType.AfterSilence, duration: 500 }
             });
@@ -213,8 +243,17 @@ discordClient.on(Events.MessageCreate, async (message) => {
                 try {
                     const pcm = opusDecoder.decode(packet);
                     if (pcm) {
-                        // Tulis langsung ke FFmpeg — timing dikendalikan Discord (20ms/packet)
-                        ffmpegProcess.stdin.write(pcm);
+                        const queue = userPCMQueues.get(userId);
+                        if (queue) {
+                            // Pecah PCM jadi chunk 20ms (FRAME_SIZE)
+                            for (let i = 0; i < pcm.length; i += FRAME_SIZE) {
+                                queue.push(pcm.slice(i, i + FRAME_SIZE));
+                            }
+                            // Batasi panjang queue agar tidak delay/lag
+                            if (queue.length > MAX_QUEUE_FRAMES) {
+                                queue.splice(0, queue.length - MAX_QUEUE_FRAMES);
+                            }
+                        }
                     }
                 } catch (e) { /* skip paket rusak */ }
             });
@@ -224,6 +263,7 @@ discordClient.on(Events.MessageCreate, async (message) => {
             audioStream.once('end', () => {
                 activeAudioStreams.delete(userId);
                 speakingUsers.delete(userId);
+                userPCMQueues.delete(userId);
                 console.log(`🔇 User ${userId} berhenti bicara`);
             });
         });
@@ -234,6 +274,7 @@ discordClient.on(Events.MessageCreate, async (message) => {
             currentConnection.destroy();
             currentConnection = null;
             speakingUsers.clear();
+            userPCMQueues.clear();
             userOpusDecoders.clear();
             activeAudioStreams.clear();
             message.reply('👋 Bot keluar dari channel.');
