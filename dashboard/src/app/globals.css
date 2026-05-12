@@ -1,13 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap');
 
 :root {
-  --bg-color: #0b0c10;
-  --text-primary: #e0e6ed;
-  --text-secondary: #8b9bb4;
-  --accent-color: #66fcf1;
-  --accent-hover: #45a29e;
-  --card-bg: rgba(31, 40, 51, 0.6);
-  --card-border: rgba(102, 252, 241, 0.2);
+  --bg-color: #050b18;
+  --text-primary: #f0f4f8;
+  --text-secondary: #94a3b8;
+  --accent-color: #3b82f6; /* Modern Blue */
+  --accent-hover: #2563eb;
+  --card-bg: rgba(15, 23, 42, 0.7);
+  --card-border: rgba(59, 130, 246, 0.3);
 }
 
 * {
@@ -22,8 +22,8 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   position: relative;
-  background: radial-gradient(circle at 15% 50%, rgba(69, 162, 158, 0.15), transparent 25%),
-              radial-gradient(circle at 85% 30%, rgba(102, 252, 241, 0.15), transparent 25%);
+  background: radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.12), transparent 30%),
+              radial-gradient(circle at 85% 30%, rgba(37, 99, 235, 0.12), transparent 30%);
   background-color: var(--bg-color);
 }
 
@@ -54,9 +54,9 @@ h1 span {
 }
 
 @keyframes pulseGlow {
-  0% { text-shadow: 0 0 10px rgba(102,252,241,0.2); }
-  50% { text-shadow: 0 0 20px rgba(102,252,241,0.6); }
-  100% { text-shadow: 0 0 10px rgba(102,252,241,0.2); }
+  0% { text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
+  50% { text-shadow: 0 0 25px rgba(59, 130, 246, 0.7); }
+  100% { text-shadow: 0 0 10px rgba(59, 130, 246, 0.3); }
 }
 
 .glass-panel {
