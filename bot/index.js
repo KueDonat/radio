@@ -94,6 +94,7 @@ const ffmpegProcess = spawn(ffmpegBin, [
     '-b:a', '96k',
     '-ar', '44100',
     '-ac', '2',
+    '-flush_packets', '1',
     'pipe:1'
 ], { stdio: ['pipe', 'pipe', 'pipe'] });
 
@@ -139,7 +140,7 @@ setInterval(() => {
     // Ambil 1 frame (20ms) dari tiap user yang sedang bicara
     for (const [userId, queue] of userPCMQueues) {
         const frame = queue.shift();
-        if (!frame) continue;
+        if (!frame || frame.length < FRAME_SIZE) continue; // Safety check
 
         hasData = true;
         for (let i = 0; i < FRAME_SIZE; i += 2) {
@@ -253,7 +254,10 @@ discordClient.on(Events.MessageCreate, async (message) => {
                         if (queue) {
                             // Pecah PCM jadi chunk 20ms (FRAME_SIZE)
                             for (let i = 0; i < pcm.length; i += FRAME_SIZE) {
-                                queue.push(pcm.slice(i, i + FRAME_SIZE));
+                                const chunk = pcm.slice(i, i + FRAME_SIZE);
+                                if (chunk.length === FRAME_SIZE) {
+                                    queue.push(chunk);
+                                }
                             }
                             // Batasi panjang queue agar tidak delay/lag
                             if (queue.length > MAX_QUEUE_FRAMES) {
