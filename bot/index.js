@@ -118,7 +118,7 @@ ffmpegProcess.on('close', (code) => console.log('[FFmpeg] Closed with code', cod
 // PCM Mixer: kumpulkan suara tiap user lalu gabungkan setiap 20ms
 const userPCMQueues = new Map();
 const speakingUsers = new Set();
-const MAX_QUEUE_FRAMES = 20; // Buffer ~400ms (lebih aman untuk network jitter)
+const MAX_QUEUE_FRAMES = 30; // Buffer ~600ms (lebih stabil untuk streaming)
 
 let mixerTick = 0;
 setInterval(() => {
