@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Song {
+  id          Int      @id @default(autoincrement())
+  title       String
+  url         String   // URL ke lagu (misal: Youtube / file lokal)
+  requestedBy String?  // Nama orang yang request
+  played      Boolean  @default(false) // Apakah sudah diputar?
+  createdAt   DateTime @default(now())
+}
