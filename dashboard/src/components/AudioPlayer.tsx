@@ -1,34 +1,32 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 export default function AudioPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    const botUrl = process.env.NEXT_PUBLIC_BOT_URL || 'http://localhost:4000';
-    audioRef.current = new Audio(`${botUrl}/stream`);
-    audioRef.current.crossOrigin = "anonymous";
-  }, []);
+  const getBotUrl = () => process.env.NEXT_PUBLIC_BOT_URL || 'http://localhost:4000';
 
   const togglePlay = async () => {
-    if (!audioRef.current) return;
-    const botUrl = process.env.NEXT_PUBLIC_BOT_URL || 'http://localhost:4000';
     if (isPlaying) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-      audioRef.current.load();
-      audioRef.current.src = `${botUrl}/stream`;
+      // Stop
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current = null;
+      }
       setIsPlaying(false);
     } else {
+      // Buat Audio baru saat diklik (bukan saat page load)
       try {
+        const audio = new Audio(`${getBotUrl()}/stream`);
+        audio.crossOrigin = 'anonymous';
+        audioRef.current = audio;
+        await audio.play();
         setIsPlaying(true);
-        const playPromise = audioRef.current.play();
-        if (playPromise !== undefined) {
-          await playPromise;
-        }
+        audio.onerror = () => setIsPlaying(false);
       } catch (error) {
-        console.error("Playback failed:", error);
+        console.error('Playback failed:', error);
         setIsPlaying(false);
       }
     }
@@ -37,9 +35,9 @@ export default function AudioPlayer() {
   return (
     <div className="play-button-overlay" onClick={togglePlay}>
       {isPlaying ? (
-        <div style={{width: '20px', height: '20px', backgroundColor: '#000', display: 'flex', gap: '4px', marginLeft: '2px'}}>
-          <div style={{width: '6px', height: '100%', backgroundColor: '#000'}} />
-          <div style={{width: '6px', height: '100%', backgroundColor: '#000'}} />
+        <div style={{width: '20px', height: '20px', display: 'flex', gap: '4px', alignItems: 'center'}}>
+          <div style={{width: '6px', height: '20px', backgroundColor: '#000', borderRadius: '2px'}} />
+          <div style={{width: '6px', height: '20px', backgroundColor: '#000', borderRadius: '2px'}} />
         </div>
       ) : (
         <div className="play-icon"></div>

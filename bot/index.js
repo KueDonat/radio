@@ -30,12 +30,23 @@ let streamClients = [];
 let chatClients = [];  // SSE clients untuk live chat
 
 const streamServer = http.createServer((req, res) => {
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS',
+            'Access-Control-Allow-Headers': '*',
+        });
+        return res.end();
+    }
+
     if (req.url === '/stream') {
         res.writeHead(200, {
             'Content-Type': 'audio/mpeg',
             'Cache-Control': 'no-cache, no-store',
             'Access-Control-Allow-Origin': '*',
             'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',   // Disable Nginx/Koyeb proxy buffering
         });
         streamClients.push({ req, res });
         console.log(`🎧 Listener connected. Total: ${streamClients.length}`);
@@ -46,12 +57,12 @@ const streamServer = http.createServer((req, res) => {
         });
 
     } else if (req.url === '/chat') {
-        // SSE endpoint untuk live chat dari Discord
         res.writeHead(200, {
             'Content-Type': 'text/event-stream',
             'Cache-Control': 'no-cache',
             'Connection': 'keep-alive',
             'Access-Control-Allow-Origin': '*',
+            'X-Accel-Buffering': 'no',   // Disable Nginx/Koyeb proxy buffering
         });
         res.write('data: {"type":"connected"}\n\n');
         chatClients.push(res);
@@ -62,7 +73,7 @@ const streamServer = http.createServer((req, res) => {
 
     } else if (req.url === '/ping') {
         res.writeHead(200, { 'Content-Type': 'text/plain', 'Access-Control-Allow-Origin': '*' });
-        res.end('pong');
+        res.end('pong - bot is alive!');
     } else {
         res.writeHead(404);
         res.end();
