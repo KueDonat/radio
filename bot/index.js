@@ -118,9 +118,17 @@ ffmpegProcess.on('close', (code) => console.log('[FFmpeg] Closed with code', cod
 // PCM Mixer: kumpulkan suara tiap user lalu gabungkan setiap 20ms
 const userPCMQueues = new Map();
 const speakingUsers = new Set();
-const MAX_QUEUE_FRAMES = 5; // Buffer ~100ms untuk cegah lag
+const MAX_QUEUE_FRAMES = 20; // Buffer ~400ms (lebih aman untuk network jitter)
 
+let mixerTick = 0;
 setInterval(() => {
+    mixerTick++;
+    // Log status mixer tiap ~5 detik (250 tick) jika ada yang bicara
+    if (mixerTick % 250 === 0 && speakingUsers.size > 0) {
+        const queueStats = [...userPCMQueues.entries()].map(([id, q]) => `${id}: ${q.length}`).join(', ');
+        console.log(`[Mixer Debug] Speaking: ${speakingUsers.size} | Queues: ${queueStats}`);
+    }
+
     // Jika tidak ada yang bicara, kirim silence
     if (speakingUsers.size === 0) {
         ffmpegProcess.stdin.write(Buffer.alloc(FRAME_SIZE));
